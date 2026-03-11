@@ -6,12 +6,11 @@ on:
   push:
 
 permissions:
-  contents: write
+  contents: read
   packages: write
 
 env:
   REGISTRY: ghcr.io
-  APP_NAME: fetch-ui
   IMAGE_NAME: dragon699/home-k8s/fetch-ui
   APP_REPO: dragon699/home-k8s
   APP_DEPLOYMENT_FILE: manifests/apps/fetch-ui/fetch-ui.yaml
@@ -19,23 +18,16 @@ env:
 
 jobs:
 
-  package:
+  Build:
     runs-on: gha-runner-fetch-ui
     outputs:
       version: ${{ steps.image_version.outputs.VERSION }}
 
     steps:
-    - name: Checkout
+    - name: Fetch code
       uses: actions/checkout@v6
 
-    - name: Authenticate to container registry
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Determine build version
+    - name: Inspect version
       id: image_version
       run: |
         VERSION_FILE=VERSION
@@ -50,7 +42,14 @@ jobs:
         echo "VERSION=${VERSION}" >> ${GITHUB_OUTPUT}
         echo "Target image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}"
 
-    - name: Build and push image
+    - name: Prepare registry auth
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build and push
       uses: docker/build-push-action@v6
       with:
         context: .
@@ -61,12 +60,12 @@ jobs:
           ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
 
-  deploy:
+  Deploy:
     runs-on: gha-runner-fetch-ui
-    needs: package
+    needs: Build
 
     steps:
-    - name: Checkout
+    - name: Fetch devops code
       uses: actions/checkout@v6
       with:
         repository: ${{ env.APP_REPO }}
@@ -74,21 +73,35 @@ jobs:
         fetch-depth: 0
         ref: main
 
-    - name: Ensure latest code
+    - name: Fetch latest changes
       run: |
         git config user.name "ActionsBot"
         git fetch origin main
         git pull --rebase origin main
 
-    - name: Update ${{ env.APP_NAME }} manifests
+    - name: Bump version
       uses: mikefarah/yq@master
       with:
-        cmd: yq -i '.spec.template.spec.containers[0].image = "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.package.outputs.version }}"' ${{ env.APP_DEPLOYMENT_FILE }}
+        cmd: yq -i '.spec.template.spec.containers[0].image = "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.Build.outputs.version }}"' ${{ env.APP_DEPLOYMENT_FILE }}
 
-    - name: Commit
+    - name: Commit changes
+      id: deployment_changes
       uses: stefanzweifel/git-auto-commit-action@v7
       with:
-        commit_message: "fetch-ui: Bump to v${{ needs.package.outputs.version }}"
+        commit_message: "fetch-ui: Bump to v${{ needs.Build.outputs.version }}"
         commit_user_name: ActionsBot
         file_pattern: ${{ env.APP_DEPLOYMENT_FILE }}
         push_options: --force-with-lease
+
+    - name: Deploy
+      uses: clowdhaus/argo-cd-action/@main
+      if: steps.deployment_changes.outputs.changes_detected == 'true'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        download-url: "https://${{ secrets.ARGOCD_SERVER }}/download/argocd-linux-amd64"
+        command: app sync fetch-ui
+        options: >-
+          --auth-token ${{ secrets.ARGOCD_TOKEN }}
+          --server ${{ secrets.ARGOCD_SERVER }}
+          --grpc-web
