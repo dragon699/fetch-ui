@@ -10,10 +10,12 @@ permissions:
   packages: write
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: dragon699/home-k8s/fetch-ui
-  APP_REPO: dragon699/home-k8s
-  APP_DEPLOYMENT_FILE: manifests/apps/fetch-ui/fetch-ui.yaml
+  REGISTRY: "ghcr.io"
+  IMAGE_NAME: "dragon699/home-k8s/fetch-ui"
+  APP_REPO: "dragon699/home-k8s"
+  APP_DEPLOYMENT_FILE: "manifests/apps/fetch-ui/fetch-ui.yaml"
+  ARGOCD_BIN_URL: "https://${{ secrets.ARGOCD_SERVER }}/download/argocd-linux-amd64"
+
 
 
 jobs:
@@ -60,6 +62,7 @@ jobs:
           ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
 
+
   Deploy:
     runs-on: gha-runner-fetch-ui
     needs: Build
@@ -97,7 +100,7 @@ jobs:
       uses: clowdhaus/argo-cd-action/@main
       if: steps.deployment_changes.outputs.changes_detected == 'true'
       with:
-        download-url: "https://${{ secrets.ARGOCD_SERVER }}/download/argocd-linux-amd64"
+        download-url: ${{ env.ARGOCD_BIN_URL }}
         command: app sync fetch-ui
         options: >-
           --auth-token ${{ secrets.ARGOCD_TOKEN }}
