@@ -20,7 +20,7 @@ env:
 jobs:
 
   package:
-    runs-on: gha-runner-home
+    runs-on: gha-runner-fetch-ui
     outputs:
       version: ${{ steps.image_version.outputs.VERSION }}
 
