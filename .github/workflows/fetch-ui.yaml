@@ -87,7 +87,7 @@ jobs:
       with:
         cmd: yq -i '.spec.template.spec.containers[0].image = "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.Build.outputs.version }}"' ${{ env.APP_DEPLOYMENT_FILE }}
 
-    - name: Commit changes
+    - name: Sync changes
       id: deployment_changes
       uses: stefanzweifel/git-auto-commit-action@v7
       with:
@@ -106,3 +106,7 @@ jobs:
           --auth-token ${{ secrets.ARGOCD_TOKEN }}
           --server ${{ secrets.ARGOCD_SERVER }}
           --grpc-web
+          --retry-limit 15
+          --retry-backoff-duration 10s
+          --retry-backoff-max-duration 10s
+          --retry-backoff-factor 1
