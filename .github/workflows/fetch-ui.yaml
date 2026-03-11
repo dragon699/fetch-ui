@@ -62,7 +62,7 @@ jobs:
 
 
   deploy:
-    runs-on: gha-runner-home
+    runs-on: gha-runner-fetch-ui
     needs: package
 
     steps:
