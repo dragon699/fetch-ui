@@ -96,8 +96,6 @@ jobs:
     - name: Deploy
       uses: clowdhaus/argo-cd-action/@main
       if: steps.deployment_changes.outputs.changes_detected == 'true'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         download-url: "https://${{ secrets.ARGOCD_SERVER }}/download/argocd-linux-amd64"
         command: app sync fetch-ui
