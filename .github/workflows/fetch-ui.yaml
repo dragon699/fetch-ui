@@ -66,6 +66,7 @@ jobs:
   Deploy:
     runs-on: gha-runner-fetch-ui
     needs: Build
+    timeout-minutes: 5
 
     steps:
     - name: Fetch devops code
