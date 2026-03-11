@@ -69,7 +69,8 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v6
       with:
-        repository: dragon699/home-k8s
+        repository: ${{ env.APP_REPO }}
+        token: ${{ secrets.APP_REPO_TOKEN }}
         fetch-depth: 0
         ref: main
 
