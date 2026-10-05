@@ -22,7 +22,7 @@ function syntaxHighlightJson(rawJsonText) {
 export default function FetchApiActions() {
   const ICON_TRANSITION_MS = 240
   const SUCCESS_ICON_HOLD_MS = 2000
-  const DEFAULT_SAVE_LOCATION = '/data/Windows/Movies'
+  const DEFAULT_SAVE_LOCATION = '/data'
   const DEFAULT_CATEGORY = 'jellyfin'
   const DEFAULT_TAGS_PLACEHOLDER = 'fetch-api,another tag'
   const DEFAULT_TAGS_FALLBACK = 'fetch-api'
@@ -244,7 +244,7 @@ export default function FetchApiActions() {
 
     let requestSucceeded = false
     try {
-      const effectiveSaveLocation = saveLocation.trim() || DEFAULT_SAVE_LOCATION
+      const effectiveSaveLocation = saveLocation.trim()
       const effectiveCategory = qbittorrentCategory.trim() || DEFAULT_CATEGORY
       const effectiveTags = (qbittorrentTags.trim() || DEFAULT_TAGS_FALLBACK)
         .split(',')
@@ -253,7 +253,7 @@ export default function FetchApiActions() {
 
       const payload = {
         url: value,
-        save_path: effectiveSaveLocation,
+        ...(effectiveSaveLocation && { save_path: effectiveSaveLocation }),
         category: effectiveCategory,
         tags: effectiveTags,
         notify,
